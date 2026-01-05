@@ -68,13 +68,19 @@ with col2:
                 pass
                 
             st.success(f"Loaded {len(df)} rows.")
-            st.dataframe(df.head(20), use_container_width=True)
             
-            if not df.empty and 'txn_date' in df.columns:
-                 # Check if txn_date has valid data
-                 valid_dates = df['txn_date'].dropna()
-                 if not valid_dates.empty:
-                    st.info(f"Date Range: {valid_dates.min()} to {valid_dates.max()}")
+            # Check for missing critical columns
+            expected_cols = ['txn_date', 'transaction_ref', 'credit', 'debit']
+            missing = [c for c in expected_cols if c not in df.columns or df[c].isna().all()]
+            
+            if missing:
+                st.warning(f"⚠️ Potential Issue: Columns {missing} are empty or missing!")
+                st.write("First 5 raw rows for debugging:")
+                st.write(df.head(5))
+            else:
+                st.dataframe(df.head(20), use_container_width=True)
+                st.info(f"Date Range: {df['txn_date'].min()} to {df['txn_date'].max()}")
+                
         except Exception as e:
             st.error(f"Error parsing broker file: {e}")
             import traceback

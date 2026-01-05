@@ -80,12 +80,14 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
     
     # Simple column mapping based on keyword matching
     new_cols = {}
+    print(f"DEBUG: Found Raw Columns: {df.columns.tolist()}") # Debug print for server logs
+    
     for col in df.columns:
         c = str(col).lower().strip()
         # Map "Transaction" or "Date" to txn_date
-        # Note: "Transaction" column in this specific PDF holds the date (2025-08-19)
-        if ('date' in c) or (c == 'transaction'):
-            new_cols[col] = 'txn_date'
+        # Use loose 'in' matching logic
+        if ('date' in c) or ('transac' in c):
+             new_cols[col] = 'txn_date'
         elif 'particular' in c:
             new_cols[col] = 'particulars'
         elif 'debit' in c:
