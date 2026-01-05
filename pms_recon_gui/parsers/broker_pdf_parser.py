@@ -10,6 +10,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.dates import parse_date
 
+def get_raw_pdf_tables(pdf_path: str):
+    """
+    Returns the raw tables extracted by pdfplumber without any processing.
+    Used for debugging.
+    """
+    all_rows = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            tables = page.extract_tables()
+            for table in tables:
+                all_rows.extend(table)
+    return pd.DataFrame(all_rows)
+
 def normalize_pdf_table_headers(df: pd.DataFrame) -> pd.DataFrame:
     """
     Attempt to find the header row and set it.
@@ -49,19 +62,7 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
         for page in pdf.pages:
             tables = page.extract_tables()
             for table in tables:
-                # Convert to DF for easier processing validation
-                df_chunk = pd.DataFrame(table)
-                # We won't normalize every chunk individually immediately
-                # Instead we just collect valid-looking rows
-                # But table structure might vary. 
-                # Strategy: Append raw rows, clean later?
-                # Better: Try to identify columns by index if standard.
-                
-                # Heuristic: Broker ledger usually has 5 columns:
-                # [Transaction Reference Number, Particulars, Debit, Credit, Balance]
-                # Sometimes Date is separate.
-                # Let's clean the row data.
-                
+                # Append raw rows
                 for row in table:
                     # Clean None/Empty
                     clean_row = [str(cell).replace('\n', ' ').strip() if cell else '' for cell in row]
@@ -76,11 +77,11 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
     # Standardize column names
     # Map common variations to canonical names
     # Expected: "Date", "Particulars", "Debit", "Credit", "Reference"
-    # Actually the prompt says: "Transaction Reference Number / Particulars / Debit / Credit / Balance"
     
-    # Simple column mapping based on keyword matching
+    # DEBUG: Print columns to console
+    print(f"DEBUG: Columns after header normalization: {df.columns.tolist()}")
+
     new_cols = {}
-    print(f"DEBUG: Found Raw Columns: {df.columns.tolist()}") # Debug print for server logs
     
     for col in df.columns:
         c = str(col).lower().strip()
@@ -105,11 +106,17 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
     
     for idx, row in df.iterrows():
         # Skip header repetition or empty
-        if 'particulars' not in row or not row['particulars']:
+        # If we have 'particulars' column, check it. If not, maybe use raw index?
+        # But we rely on column mapping.
+        
+        particulars = ""
+        if 'particulars' in row:
+             particulars = str(row['particulars'])
+        
+        if not particulars:
             continue
             
         # Parse Amount
-        # Credit/Debit might be strings with commas
         credit = 0.0
         debit = 0.0
         
@@ -131,14 +138,10 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
             txn_date = parse_date(raw_txn_date)
             # DEBUG: If parsing failed, keep raw string so we can see it in UI
             if txn_date is None:
-                print(f"DEBUG: Date match failed for '{raw_txn_date}'")
                 txn_date = raw_txn_date 
         
         # Extract Reference from Particulars if column not present/empty
-        # Or if we want to augment "transaction_ref" with what's in particulars
-        # The prompt says: "Received in BANK ... Reference No.: 478322208"
         
-        particulars = str(row['particulars'])
         extracted_ref = extract_ref_from_particulars(particulars)
         
         # Use extracted ref if explicit column is missing or empty
