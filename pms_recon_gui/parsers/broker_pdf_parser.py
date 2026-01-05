@@ -78,8 +78,7 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
     # Map common variations to canonical names
     # Expected: "Date", "Particulars", "Debit", "Credit", "Reference"
     
-    # DEBUG: Print columns to console
-    print(f"DEBUG: Columns after header normalization: {df.columns.tolist()}")
+
 
     new_cols = {}
     
