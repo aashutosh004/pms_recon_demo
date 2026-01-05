@@ -1,0 +1,22 @@
+# Reconciliation Configuration
+
+# Date matching window (± days)
+date_window_days: 2
+
+# Similarity matching (fuzzy logic)
+similarity_enabled: true
+similarity_threshold: 0.85
+
+# Tolerances (NPR)
+tolerance:
+  # IPS Charge range (e.g. 2 to 10 Rs)
+  ips_min: 2.0
+  ips_max: 10.0
+  
+  # RTGS Flat adjustment for amounts >= 2,000,000
+  rtgs_flat: 100.0
+  rtgs_threshold: 2000000.0
+
+# General settings
+app_name: "PMS Reconciliation Tool"
+version: "1.0.0"
