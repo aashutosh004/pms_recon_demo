@@ -120,22 +120,48 @@ def process_transaction_cluster(lines):
     
     # 3. Extract Ref & Narration
     # Use helper rules
+    # We pass the full text as "narration context" to help decision making (e.g. check for "Tax")
     ref_no = extract_ref(other_tokens, full_text)
     
     # Narration: Join other tokens, excluding the Ref
-    # And exclude Date/Amount tokens which we handled specifically?
-    # Actually just filtering out recognized Ref is usually safer.
+    # Also exclude tokens that look like the ref we just found (to clean up narration)
     
-    narration_tokens = [t for t in other_tokens if t != ref_no]
-    narration = clean_narration(" ".join(narration_tokens))
-    
-    # Ref cleanup (stripping /prefix)
-    # The extract_ref logic handles some of this, but let's be sure.
-    if '/' in str(ref_no) and len(str(ref_no)) > 10: 
-        # e.g. 47832208/1230 -> 47832208
-        # Assuming the second part is suffix
-        ref_no = str(ref_no).split('/')[0]
+    final_tokens = []
+    for t in other_tokens:
+        # If t is exactly the ref or starts with ref (if ref is long)
+        if ref_no and (t == ref_no or (len(ref_no) > 5 and t.startswith(ref_no))):
+            continue
+        # Also clean up "Interest" specific noise if needed?
+        # User said: "Interest (12/08/25-17/10/25)" -> Keep it.
+        # User said: "IPS CHARGE ... remove trailing Dr/Cr totals" -> The Dr/Cr totals likely look like "1,673,000.48".
+        # We already filtered out "valid amounts" into `amounts`. 
+        # But 'valid_amounts' logic was: "abs(a) > 0.001".
+        # If the balance line "1,673,000.48" was in `amounts`, it's gon.
+        # If it wasn't valid amount (maybe formatting?), it's here.
         
+        final_tokens.append(t)
+
+    narration = clean_narration(" ".join(final_tokens))
+    
+    # Ref cleanup (stripping /prefix) inside extract_ref logic? 
+    # extract_ref logic usually returns the Clean token if it matched the split logic.
+    # But if it matched "CDS-...", it returns "CDS-..."
+    # If extract_ref returned "47832208", then t "47832208/1230" wouldn't match "47832208" EXACTLY.
+    # We need to handle that in the loop above.
+    
+    # Re-loop to catch the original token that *generated* the ref_no
+    if ref_no:
+        final_tokens_2 = []
+        for t in other_tokens:
+            # Check if t "contains" ref_no or vice versa?
+            # t: "47832208/1230", ref_no: "47832208"
+            if str(ref_no) in t and len(str(ref_no)) > 5:
+                continue
+            if t == str(ref_no):
+                continue
+            final_tokens_2.append(t)
+        narration = clean_narration(" ".join(final_tokens_2))
+    
     return {
         "txn_date": txn_date,
         "ref_no": ref_no,

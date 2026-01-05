@@ -31,6 +31,7 @@ def is_noise_line(line: str) -> bool:
     if 'collect' in l: return True
     if 'date summary' in l: return True
     if 'dr count' in l and 'cr count' in l: return True
-    if 'branch,' in l: return True
+    if 'branch,' in l or 'branch ,' in l: return True
     if 'continued page' in l: return True
+    if 'summary' in l and '~date' in l: return True
     return False

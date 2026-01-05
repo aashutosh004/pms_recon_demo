@@ -52,9 +52,20 @@ def process_broker_csv(input_path, output_path):
     if 'credit' in df.columns:
         df['credit'] = df['credit'].apply(clean_amount)
         
-    # 3. Particulars
+    # 3. Particulars & Bank Ref Extraction
     if 'particulars' in df.columns:
         df['particulars'] = df['particulars'].apply(clean_particulars)
+        
+        # New Column: bank_ref_in_particulars
+        # Regex: Reference No.\s*:\s*([A-Za-z0-9]+)
+        def extract_bank_ref(text):
+            if not isinstance(text, str): return None
+            m = re.search(r'(?:Reference|Ref)\.?\s*No\.?\s*[:\-]\s*([A-Za-z0-9]+)', text, re.IGNORECASE)
+            if m:
+                return m.group(1)
+            return None
+            
+        df['bank_ref_in_particulars'] = df['particulars'].apply(extract_bank_ref)
         
     # 4. Ref (Standardize)
     if 'transaction_ref' in df.columns:
