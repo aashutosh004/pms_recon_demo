@@ -81,8 +81,10 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
     # Simple column mapping based on keyword matching
     new_cols = {}
     for col in df.columns:
-        c = str(col).lower()
-        if 'date' in c and 'date' not in new_cols.values():
+        c = str(col).lower().strip()
+        # Map "Transaction" or "Date" to txn_date
+        # Note: "Transaction" column in this specific PDF holds the date (2025-08-19)
+        if ('date' in c) or (c == 'transaction'):
             new_cols[col] = 'txn_date'
         elif 'particular' in c:
             new_cols[col] = 'particulars'
@@ -90,7 +92,8 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
             new_cols[col] = 'debit'
         elif 'credit' in c:
             new_cols[col] = 'credit'
-        elif 'ref' in c and 'no' in c: # Reference Number
+        # Map "Reference Number", "Ref No", "Transaction Ref", or just "Reference"
+        elif 'ref' in c: 
             new_cols[col] = 'transaction_ref'
     
     df.rename(columns=new_cols, inplace=True)
