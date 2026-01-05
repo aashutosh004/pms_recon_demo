@@ -18,6 +18,12 @@ def parse_date(date_str: str) -> Optional[date]:
         pass
     
     try:
+        # Try ISO format (YYYY-MM-DD) which appears in Broker PDF
+        return datetime.strptime(date_str.strip(), "%Y-%m-%d").date()
+    except ValueError:
+        pass
+
+    try:
         # Fallback to dateutil default parsing
         dt = parser.parse(date_str, dayfirst=True)
         return dt.date()

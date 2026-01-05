@@ -125,9 +125,15 @@ def parse_broker_pdf(pdf_path: str) -> pd.DataFrame:
             
         # Parse Date
         txn_date = None
-        if 'txn_date' in row:
-            txn_date = parse_date(str(row['txn_date']))
-            
+        raw_txn_date = str(row.get('txn_date', '')).strip()
+        
+        if raw_txn_date:
+            txn_date = parse_date(raw_txn_date)
+            # DEBUG: If parsing failed, keep raw string so we can see it in UI
+            if txn_date is None:
+                print(f"DEBUG: Date match failed for '{raw_txn_date}'")
+                txn_date = raw_txn_date 
+        
         # Extract Reference from Particulars if column not present/empty
         # Or if we want to augment "transaction_ref" with what's in particulars
         # The prompt says: "Received in BANK ... Reference No.: 478322208"
