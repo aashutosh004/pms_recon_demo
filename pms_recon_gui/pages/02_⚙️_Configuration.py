@@ -4,12 +4,17 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from utils.session import init_session
+
 st.set_page_config(page_title="Configuration", page_icon="⚙️")
+
+# Initialize session (handles config loading)
+init_session()
 
 st.title("⚙️ Configuration")
 
 if 'config' not in st.session_state:
-    st.warning("Config not loaded. Please go to Home page first or reload.")
+    st.error("Could not load configuration file.")
     st.stop()
 
 config = st.session_state['config']

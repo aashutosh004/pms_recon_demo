@@ -8,8 +8,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from normalize.bank_normalize import normalize_bank_data
 from normalize.broker_normalize import normalize_broker_data
 from engine.matcher import Matcher
+from utils.session import init_session
 
 st.set_page_config(page_title="Reconcile", page_icon="✅", layout="wide")
+
+init_session()
 
 st.title("✅ Run Reconciliation")
 

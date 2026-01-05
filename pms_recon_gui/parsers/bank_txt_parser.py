@@ -26,29 +26,24 @@ def parse_bank_line(line: str) -> Optional[Dict[str, Any]]:
         return None # Not a valid line
     
     # 2. Reference (Token 1)
-    # Could be "478322208/12390"
     raw_ref = parts[1]
     ref_no = clean_ref_no(raw_ref)
     
     # 3. Amount (Token 2)
-    # Could be "1,046,729.56" (includes commas)
+    # Check if token 2 is amount. If not, maybe token 1 was part of date? No.
+    # Maybe Extra spaces?
     raw_amt = parts[2]
+    amount = 0.0
     try:
         amount = float(raw_amt.replace(',', ''))
     except ValueError:
-        # If amount parsing fails, maybe the structure is off
+        # Retry with Token 3 if Token 2 was something else?
+        # But per requirements: Date Ref Amount.
+        # Let's be strict for now, or returns None to skip header.
         return None
     
     # 4. Narration (Rest)
     narration = " ".join(parts[3:])
-    
-    # 5. Infer DR/CR? 
-    # The requirement says "Amount ... CR = inflow to PMS, DR = outflow"
-    # But text file just has absolute amount usually.
-    # We will assume absolute amount for now.
-    # Logic might differ if there is a DR/CR flag effectively in the text, 
-    # but the sample line doesn't show it.
-    # We will look for keywords in narration if needed, or just keep it absolute.
     
     return {
         "txn_date": date_val,
@@ -61,6 +56,14 @@ def parse_bank_line(line: str) -> Optional[Dict[str, Any]]:
 def parse_bank_statement(file_content: str) -> pd.DataFrame:
     """
     Parses the content of a Bank TXT file.
+    Returns a tuple: (DataFrame, debug_info_dict)
+    But to keep signature simple, we might just return DF, 
+    but for debugging we need more info if it's empty.
+    
+    Let's change this to return clean DF, 
+    but we will print to stderr or log if possible?
+    
+    Actually, let's allow it to return just DF, but we will make it try harder.
     """
     lines = file_content.splitlines()
     data = []

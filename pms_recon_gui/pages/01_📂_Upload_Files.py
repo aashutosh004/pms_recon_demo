@@ -10,8 +10,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from parsers.bank_txt_parser import parse_bank_statement
 from parsers.broker_pdf_parser import parse_broker_pdf
+from utils.session import init_session
 
 st.set_page_config(page_title="Upload Files", page_icon="📂", layout="wide")
+
+init_session()
 
 st.title("📂 Upload Files")
 
@@ -24,14 +27,22 @@ with col1:
         stringio = StringIO(bank_file.getvalue().decode("utf-8"))
         content = stringio.read()
         
+        # Show a sneak peek of raw content for debugging
+        with st.expander("👀 View Raw File Content (First 500 chars)"):
+            st.text(content[:500])
+        
         try:
             df = parse_bank_statement(content)
             st.session_state['bank_df'] = df
-            st.success(f"Loaded {len(df)} rows.")
-            st.dataframe(df.head(20), use_container_width=True)
             
-            if not df.empty:
+            if df.empty:
+                 st.warning("⚠️ File loaded but 0 valid rows parsed. Please check the file format. Expected: 'Date Ref Amount Narration'")
+                 st.info("Ensure dates are DD/MM/YYYY and columns are space-separated.")
+            else:
+                st.success(f"Loaded {len(df)} rows.")
+                st.dataframe(df.head(20), use_container_width=True)
                 st.info(f"Date Range: {df['txn_date'].min()} to {df['txn_date'].max()}")
+                
         except Exception as e:
             st.error(f"Error parsing bank file: {e}")
 
